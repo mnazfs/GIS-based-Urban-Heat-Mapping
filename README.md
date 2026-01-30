@@ -1,20 +1,74 @@
 # Thodupuzha UHI Dashboard
 
-An interactive web-based Geographic Information System (GIS) dashboard for analyzing Urban Heat Island (UHI) effects in Thodupuzha, Kerala. This application visualizes Land Surface Temperature (LST), vegetation density (NDVI), and built-up area density (NDBI) using GeoTIFF raster data.
+---
 
-![Dashboard Preview](https://img.shields.io/badge/React-18.3-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue) ![Vite](https://img.shields.io/badge/Vite-5.4-purple) ![Leaflet](https://img.shields.io/badge/Leaflet-1.9-green)
+## 🚀 Complete System Setup (Local, Windows)
 
-## 🌟 Features
+This section describes how to set up the entire UHI dashboard system, including backend, GeoServer, and frontend, for local use on Windows.
 
-- **Real-time GeoTIFF Visualization**: Load and render large GeoTIFF files directly in the browser
-- **Multiple Layer Support**: Toggle between LST, UHI, NDVI, and NDBI layers
-- **Interactive Map**: Click anywhere to see pixel-level data values
-- **Dynamic Statistics**: Real-time calculations from raster data
-- **Data Export**: Export data as CSV, GeoJSON, or download original GeoTIFF files
-- **Responsive Design**: Dark-themed professional UI with TailwindCSS
-- **Performance Optimized**: Lazy loading, layer caching, and canvas tiling
+### 1. System Requirements
+- Windows 10/11 (tested)
+- Python 3.9+ (for backend)
+- Node.js 16+ (for frontend)
+- Java 8+ (for GeoServer)
+- 8 GB RAM or higher recommended
 
-## 📋 Table of Contents
+### 2. Folder Structure
+- `backend/` — FastAPI backend (API, analysis, GeoServer integration)
+- `src/` — React frontend source code
+- `public/` — Static assets (GeoTIFFs, etc.)
+- `docs/` — Technical documentation
+
+### 3. Backend Setup (FastAPI)
+1. Open a terminal and navigate to `backend/`.
+2. (Optional) Create and activate a Python virtual environment:
+   - `python -m venv .venv`
+   - `./.venv/Scripts/activate`
+3. Install dependencies:
+   - `pip install -r requirements.txt` (or see docs for dependencies)
+4. Start the backend server:
+   - `python main.py`
+   - Default API URL: `http://localhost:8000`
+5. Confirm backend can connect to GeoServer (see logs for errors).
+
+### 4. GeoServer Setup
+1. Download GeoServer (2.20+ recommended) from [geoserver.org](https://geoserver.org/download/).
+2. Extract and run GeoServer:
+   - Run `startup.bat` (Windows) in the GeoServer directory.
+   - Access admin UI at `http://localhost:8080/geoserver`.
+3. Ensure the data directory is writable and accessible by the backend.
+4. (Optional) Configure workspaces, stores, and SLD styles as needed.
+
+### 5. Frontend Setup (React)
+1. Open a new terminal and navigate to the project root.
+2. Install Node.js dependencies:
+   - `npm install`
+3. Start the development server:
+   - `npm run dev`
+   - Default frontend URL: `http://localhost:5173`
+
+### 6. Data Preparation
+1. Place required GeoTIFF files in `public/data/`:
+   - `Thodupuzha_LST.tif`
+   - `Thodupuzha_UHI_Map.tif`
+   - `Thodupuzha_NDVI.tif`
+   - `Thodupuzha_NDBI.tif`
+2. For AOI-based analysis, ensure GeoServer is running and accessible.
+
+### 7. Usage
+- Open the dashboard in your browser: `http://localhost:5173`
+- Use the map to:
+  - Toggle and view raster layers
+  - Click for point-based UHI analysis
+  - Upload shapefile AOIs for zonal analysis (requires backend and GeoServer)
+
+### 8. Troubleshooting
+- See the Troubleshooting section below for common issues.
+- Ensure all services (backend, GeoServer, frontend) are running and accessible.
+
+---
+
+# Table of Contents
 
 - [Tech Stack](#-tech-stack)
 - [Architecture](#-architecture)
