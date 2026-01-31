@@ -78,13 +78,13 @@ const AOIAnalysisPanel = ({ data, onClear, onFileUpload, onDrawStart, isUploadin
         
         {/* Action Buttons */}
         <div className="space-y-3">
-          <button
+          {/* <button
             onClick={onDrawStart}
             className="w-full glass-panel rounded-lg px-4 py-3 flex items-center justify-center gap-2 hover:bg-secondary transition-colors"
           >
             <Pencil className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium text-foreground">Draw Polygon on Map</span>
-          </button>
+          </button> */}
           
           <div className="relative">
             <input

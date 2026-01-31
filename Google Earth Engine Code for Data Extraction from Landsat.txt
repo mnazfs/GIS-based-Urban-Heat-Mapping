@@ -1,0 +1,190 @@
+/***************************************
+ * PHASE I – UHI DATA GENERATION
+ * CRS: EPSG:4326
+ * Satellite: Landsat 8 C2 L2
+ ***************************************/
+
+//--------------------------------------
+// 1. LOAD AOI
+//--------------------------------------
+var aoi = ee.FeatureCollection('users/your_username/thodupuzha_boundary');
+Map.centerObject(aoi, 12);
+Map.addLayer(aoi, {}, 'AOI');
+
+//--------------------------------------
+// 2. DATE RANGE
+//--------------------------------------
+var startDate = '2023-01-01';
+var endDate   = '2023-12-31';
+
+//--------------------------------------
+// 3. CLOUD MASK FUNCTION
+//--------------------------------------
+function maskL8(image) {
+  var qa = image.select('QA_PIXEL');
+
+  // Bit flags
+  var cloudShadowBitMask = 1 << 4;
+  var cloudBitMask = 1 << 3;
+
+  var mask = qa.bitwiseAnd(cloudShadowBitMask).eq(0)
+                .and(qa.bitwiseAnd(cloudBitMask).eq(0));
+
+  return image.updateMask(mask);
+}
+
+//--------------------------------------
+// 4. LOAD LANDSAT COLLECTION
+//--------------------------------------
+var landsat = ee.ImageCollection('LANDSAT/LC08/C02/T1_L2')
+  .filterBounds(aoi)
+  .filterDate(startDate, endDate)
+  .filter(ee.Filter.lt('CLOUD_COVER', 20))
+  .map(maskL8);
+
+//--------------------------------------
+// 5. SCALE FACTORS (MANDATORY)
+//--------------------------------------
+function applyScaleFactors(image) {
+  var opticalBands = image.select('SR_B.*')
+    .multiply(0.0000275)
+    .add(-0.2);
+
+  var thermalBand = image.select('ST_B10')
+    .multiply(0.00341802)
+    .add(149.0);
+
+  return image.addBands(opticalBands, null, true)
+              .addBands(thermalBand, null, true);
+}
+
+landsat = landsat.map(applyScaleFactors);
+
+//--------------------------------------
+// 6. NDVI
+//--------------------------------------
+function addNDVI(image) {
+  var ndvi = image.normalizedDifference(['SR_B5', 'SR_B4'])
+    .rename('NDVI');
+  return image.addBands(ndvi);
+}
+
+//--------------------------------------
+// 7. NDBI
+//--------------------------------------
+function addNDBI(image) {
+  var ndbi = image.normalizedDifference(['SR_B6', 'SR_B5'])
+    .rename('NDBI');
+  return image.addBands(ndbi);
+}
+
+//--------------------------------------
+// 8. LST (CELSIUS)
+//--------------------------------------
+function addLST(image) {
+  var lst = image.select('ST_B10')
+    .subtract(273.15)
+    .rename('LST_C');
+  return image.addBands(lst);
+}
+
+// Apply indices
+landsat = landsat
+  .map(addNDVI)
+  .map(addNDBI)
+  .map(addLST);
+
+//--------------------------------------
+// 9. TEMPORAL COMPOSITE
+//--------------------------------------
+var composite = landsat.median().clip(aoi);
+
+//--------------------------------------
+// 10. VISUAL CHECK
+//--------------------------------------
+Map.addLayer(composite.select('LST_C'),
+  {min: 20, max: 45, palette: ['blue','cyan','yellow','red']},
+  'LST (°C)');
+
+Map.addLayer(composite.select('NDVI'),
+  {min: -0.5, max: 0.8, palette: ['brown','yellow','green']},
+  'NDVI');
+
+Map.addLayer(composite.select('NDBI'),
+  {min: -0.5, max: 0.5, palette: ['green','yellow','red']},
+  'NDBI');
+
+//--------------------------------------
+// 11. EXPORTS (CLOUD OPTIMIZED)
+//--------------------------------------
+
+// LST
+Export.image.toDrive({
+  image: composite.select('LST_C'),
+  description: 'Thodupuzha_LST_2023',
+  region: aoi.geometry(),
+  scale: 30,
+  crs: 'EPSG:4326',
+  fileFormat: 'GeoTIFF',
+  formatOptions: { cloudOptimized: true },
+  maxPixels: 1e13
+});
+
+// NDVI
+Export.image.toDrive({
+  image: composite.select('NDVI'),
+  description: 'Thodupuzha_NDVI_2023',
+  region: aoi.geometry(),
+  scale: 30,
+  crs: 'EPSG:4326',
+  fileFormat: 'GeoTIFF',
+  formatOptions: { cloudOptimized: true },
+  maxPixels: 1e13
+});
+
+// NDBI
+Export.image.toDrive({
+  image: composite.select('NDBI'),
+  description: 'Thodupuzha_NDBI_2023',
+  region: aoi.geometry(),
+  scale: 30,
+  crs: 'EPSG:4326',
+  fileFormat: 'GeoTIFF',
+  formatOptions: { cloudOptimized: true },
+  maxPixels: 1e13
+});
+
+//--------------------------------------
+// 12. UHI (RELATIVE TO MIN LST)
+//--------------------------------------
+// Common method: UHI = LST - min(LST over AOI or rural pixels)
+var lst = composite.select('LST_C');
+
+// Option 1: Simple min-based normalization (baseline)
+var lstMin = lst.reduceRegion({
+  reducer: ee.Reducer.min(),
+  geometry: aoi,
+  scale: 30,
+  maxPixels: 1e13
+}).get('LST_C');
+
+var uhi = lst.subtract(ee.Number(lstMin)).rename('UHI');
+
+// Visual check
+Map.addLayer(uhi,
+  {min: 0, max: 10, palette: ['blue','yellow','red']},
+  'UHI');
+
+//--------------------------------------
+// 13. EXPORT UHI
+//--------------------------------------
+Export.image.toDrive({
+  image: uhi,
+  description: 'Thodupuzha_UHI_2023',
+  region: aoi.geometry(),
+  scale: 30,
+  crs: 'EPSG:4326',
+  fileFormat: 'GeoTIFF',
+  formatOptions: { cloudOptimized: true },
+  maxPixels: 1e13
+});
